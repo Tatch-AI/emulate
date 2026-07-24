@@ -29,6 +29,12 @@ const SERVICE_NAME_LIST = [
   "clerk",
   "linear",
   "twilio",
+  "openai",
+  "anthropic",
+  "posthog",
+  "openphone",
+  "knock",
+  "deepgram",
 ] as const;
 export type ServiceName = (typeof SERVICE_NAME_LIST)[number];
 export const SERVICE_NAMES: readonly ServiceName[] = SERVICE_NAME_LIST;
@@ -625,6 +631,165 @@ export const SERVICE_REGISTRY: Record<ServiceName, ServiceEntry> = {
         conversations: {
           services: [{ friendly_name: "Local Conversations" }],
         },
+      },
+    },
+  },
+  openai: {
+    label: "OpenAI API emulator",
+    endpoints:
+      "chat completions (streaming, tools, JSON modes), responses, embeddings, models, audio transcription/translation/speech, moderations, files, batches, inspector",
+    async load() {
+      const mod = await import("@emulators/openai");
+      return { plugin: mod.openaiPlugin, seedFromConfig: mod.seedFromConfig };
+    },
+    defaultFallback() {
+      return { login: "sk-test-admin", id: 1, scopes: [] };
+    },
+    initConfig: {
+      openai: {
+        api_keys: ["sk-test-openai"],
+        responses: [
+          {
+            match: { content_contains: "ping" },
+            reply: "pong",
+          },
+        ],
+        transcripts: [{ filename_contains: "greeting", text: "Hello from the OpenAI emulator." }],
+      },
+    },
+  },
+
+  anthropic: {
+    label: "Anthropic API emulator",
+    endpoints: "messages (streaming, tools, thinking), token counting, models, message batches, inspector",
+    async load() {
+      const mod = await import("@emulators/anthropic");
+      return { plugin: mod.anthropicPlugin, seedFromConfig: mod.seedFromConfig };
+    },
+    defaultFallback() {
+      return { login: "sk-ant-test-admin", id: 1, scopes: [] };
+    },
+    initConfig: {
+      anthropic: {
+        api_keys: ["sk-ant-test-key"],
+        responses: [
+          {
+            match: { content_contains: "ping" },
+            reply: "pong",
+          },
+        ],
+      },
+    },
+  },
+
+  posthog: {
+    label: "PostHog analytics emulator",
+    endpoints: "event capture, batch, decide/flags evaluation, local evaluation, feature flags CRUD, persons, events, annotations, inspector",
+    async load() {
+      const mod = await import("@emulators/posthog");
+      return { plugin: mod.posthogPlugin, seedFromConfig: mod.seedFromConfig };
+    },
+    defaultFallback(cfg) {
+      const project = cfg?.project as { api_key?: string } | undefined;
+      return { login: project?.api_key ?? "phc_test_key", id: 1, scopes: [] };
+    },
+    initConfig: {
+      posthog: {
+        project: { id: 1, name: "Local Project", api_key: "phc_test_key" },
+        personal_api_keys: ["phx_test_personal"],
+        feature_flags: [
+          {
+            key: "new-dashboard",
+            active: true,
+            filters: {
+              groups: [{ properties: [], rollout_percentage: 100 }],
+            },
+          },
+        ],
+        persons: [{ distinct_ids: ["user_1"], properties: { email: "test@example.com" } }],
+      },
+    },
+  },
+
+  openphone: {
+    label: "OpenPhone API emulator",
+    endpoints: "messages, calls, recordings, call summaries, call transcripts, contacts, phone numbers, webhooks, simulator, inspector",
+    async load() {
+      const mod = await import("@emulators/openphone");
+      return { plugin: mod.openphonePlugin, seedFromConfig: mod.seedFromConfig };
+    },
+    defaultFallback(cfg) {
+      const firstKey = (cfg?.api_keys as Array<{ key?: string }> | undefined)?.[0]?.key;
+      return { login: firstKey ?? "op_test_api_key", id: 1, scopes: [] };
+    },
+    initConfig: {
+      openphone: {
+        api_keys: [{ key: "op_test_api_key", name: "Local API Key" }],
+        users: [{ first_name: "Test", last_name: "User", email: "test@example.com", role: "owner" }],
+        phone_numbers: [
+          {
+            number: "+15551230000",
+            name: "Local OpenPhone Number",
+            users: ["test@example.com"],
+          },
+        ],
+        custom_fields: [{ key: "account-id", name: "Account ID", type: "string" }],
+      },
+    },
+  },
+
+  knock: {
+    label: "Knock notifications emulator",
+    endpoints: "workflow triggers, users, messages, engagement statuses, feeds, objects, subscriptions, preferences, tenants, inspector",
+    async load() {
+      const mod = await import("@emulators/knock");
+      return { plugin: mod.knockPlugin, seedFromConfig: mod.seedFromConfig };
+    },
+    defaultFallback() {
+      return { login: "sk_test_knock", id: 1, scopes: [] };
+    },
+    initConfig: {
+      knock: {
+        api_keys: ["sk_test_knock", "pk_test_knock"],
+        channels: [
+          { key: "in-app", type: "in_app_feed", name: "In-App Feed" },
+          { key: "email", type: "email", name: "Email" },
+        ],
+        workflows: [
+          {
+            key: "welcome",
+            name: "Welcome",
+            steps: [
+              { channel: "in-app", template: { body: "Welcome, {{ recipient.name }}!" } },
+              { channel: "email", template: { subject: "Welcome", body: "Hi {{ recipient.name }}" } },
+            ],
+          },
+        ],
+        users: [{ id: "user_1", name: "Test User", email: "test@example.com" }],
+      },
+    },
+  },
+
+  deepgram: {
+    label: "Deepgram speech AI emulator",
+    endpoints: "prerecorded transcription, text to speech, text intelligence, temporary tokens, projects, keys, members, usage, inspector",
+    async load() {
+      const mod = await import("@emulators/deepgram");
+      return { plugin: mod.deepgramPlugin, seedFromConfig: mod.seedFromConfig };
+    },
+    defaultFallback() {
+      return { login: "deepgram_test_key", id: 1, scopes: [] };
+    },
+    initConfig: {
+      deepgram: {
+        api_keys: ["deepgram_test_key"],
+        projects: [{ name: "Local Project" }],
+        transcripts: [
+          {
+            match: { url_contains: "greeting" },
+            text: "Hello from the Deepgram emulator.",
+          },
+        ],
       },
     },
   },
