@@ -1,0 +1,83 @@
+# OpenPhone API
+
+Stateful OpenPhone (Quo) REST emulation with messages, calls (read plus simulator), contacts, phone numbers, signed webhooks, local simulator routes, and an inspector.
+
+## Start
+
+```bash
+npx emulate --service openphone
+```
+
+When OpenPhone is the only enabled service, it starts on `http://localhost:4000`. When all services are started, it uses `http://localhost:4017`.
+
+## Defaults
+
+```text
+OPENPHONE_API_KEY=op_test_api_key
+OPENPHONE_PHONE_NUMBER=+15551234567
+OPENPHONE_PHONE_NUMBER_ID=PN00000000
+OPENPHONE_USER_ID=US00000000
+```
+
+Send the API key in the raw `Authorization` header (no Bearer prefix required). `Authorization: Bearer <key>` is also accepted. When no API keys are seeded, any non-empty key is accepted.
+
+## Supported Routes
+
+### Messages, Calls, Contacts, Phone Numbers
+
+- `POST /v1/messages` - send outbound SMS (transitions to delivered and fires `message.delivered`)
+- `GET /v1/messages` / `GET /v1/messages/{id}`
+- `GET /v1/calls` / `GET /v1/calls/{callId}`
+- `GET /v1/call-recordings/{callId}` / `GET /v1/call-summaries/{callId}` / `GET /v1/call-transcripts/{callId}`
+- `POST /v1/contacts` / `GET|PATCH|DELETE /v1/contacts/{id}`
+- `GET /v1/contact-custom-fields`
+- `GET /v1/phone-numbers` / `GET /v1/phone-numbers/{phoneNumberId}`
+
+### Webhooks
+
+- `POST /v1/webhooks/messages|calls|call-summaries|call-transcripts`
+- `GET /v1/webhooks` / `GET /v1/webhooks/{id}` / `DELETE /v1/webhooks/{id}`
+
+Deliveries use the OpenPhone `openphone-signature` header (`hmac;1;<timestamp>;<signature>`).
+
+### Simulator
+
+- `POST /_openphone/simulate/inbound-message`
+- `POST /_openphone/simulate/inbound-call`
+- `POST /_openphone/simulate/call-recording`
+- `POST /_openphone/simulate/call-summary`
+- `POST /_openphone/simulate/call-transcript`
+
+### Inspector
+
+- `GET /` - tabbed inspector for messages, calls, contacts, phone numbers, webhooks, and API keys
+
+## Simulator Flows
+
+Outbound `POST /v1/messages` creates a delivered message and fires `message.delivered` webhooks. Use `POST /_openphone/simulate/inbound-message` to fire `message.received`. Use `POST /_openphone/simulate/inbound-call` to fire `call.ringing` then `call.completed`. Attach recordings, summaries, and transcripts through the matching `/_openphone/simulate/*` routes.
+
+## Seed Config
+
+```yaml
+openphone:
+  api_keys:
+    - key: op_test_api_key
+      name: Local API Key
+  users:
+    - first_name: Test
+      last_name: User
+      email: test@example.com
+      role: owner
+  phone_numbers:
+    - number: "+15551230000"
+      name: Local OpenPhone Number
+      users: [test@example.com]
+  custom_fields:
+    - key: account-id
+      name: Account ID
+      type: string
+```
+
+## Current Limits
+
+No real telephony, carrier delivery, MMS/media upload, user management writes, conversations endpoints, tasks, voicemail media hosting, or production OpenPhone billing and compliance behavior is implemented. Calls, recordings, summaries, and transcripts are created through seed config or `/_openphone/simulate/*` routes.

@@ -1,0 +1,76 @@
+# Deepgram API
+
+Fully stateful Deepgram emulation of prerecorded transcription, text to speech, text intelligence, temporary auth tokens, and the management API (projects, keys, usage). No real speech models run. Transcripts come from seed matchers or deterministic defaults. TTS returns synthetic audio bytes.
+
+## Start
+
+```bash
+npx emulate --service deepgram
+```
+
+When Deepgram is the only enabled service, it starts on `http://localhost:4000`. When all services are started, it uses `http://localhost:4019`.
+
+## Defaults
+
+```text
+DEEPGRAM_API_KEY=deepgram_test_key
+```
+
+Canonical auth form is `Authorization: Token <api_key>`. Also accepts `Authorization: Bearer <token>` for temporary tokens from `POST /v1/auth/grant`, and for API keys. When no API keys are seeded, any credential is accepted.
+
+## Supported Routes
+
+### Listen, Speak, Read, Auth
+
+- `POST /v1/listen` - prerecorded transcription (URL JSON body or raw audio bytes)
+- `POST /v1/speak` - text to speech
+- `POST /v1/read` - text intelligence
+- `POST /v1/auth/grant` - issue temporary access tokens (`ttl_seconds` 1–3600, default 30)
+
+### Management
+
+- `GET/PATCH/DELETE /v1/projects` and `/v1/projects/:id`
+- `GET/POST/DELETE /v1/projects/:id/keys` (and get one)
+- `GET /v1/projects/:id/members`
+- `GET /v1/projects/:id/requests`
+- `GET /v1/projects/:id/usage`
+
+### Inspector
+
+- `GET /` - transcription requests, TTS, projects/keys, temp tokens, callback deliveries
+
+## Transcription Seeding
+
+Seed transcript matchers so `/v1/listen` returns known text for specific URLs or a default fallback:
+
+```yaml
+deepgram:
+  api_keys:
+    - deepgram_test_key
+  projects:
+    - name: Local Project
+  transcripts:
+    - match:
+        url_contains: greeting
+      text: Hello from the Deepgram emulator.
+```
+
+Point `@deepgram/sdk` v5 at the emulator with `baseUrl`. Optional `callback` query params receive a best-effort local HTTP POST of the transcription result with a `dg-token` header.
+
+## Seed Config
+
+```yaml
+deepgram:
+  api_keys:
+    - deepgram_test_key
+  projects:
+    - name: Local Project
+  transcripts:
+    - match:
+        url_contains: greeting
+      text: Hello from the Deepgram emulator.
+```
+
+## Current Limits
+
+No WebSocket live transcription (`/v1/listen` streaming), no Agent API or Voice Agent websocket, no self-hosted distribution endpoints, no balances/invoices/billing. Audio is not decoded; duration is seeded or estimated from transcript length. TTS returns deterministic fake WAV/MP3 bytes, not real synthesis. Callback delivery is best-effort local HTTP POST with a `dg-token` header.

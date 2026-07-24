@@ -1,0 +1,72 @@
+# Anthropic API
+
+Fully stateful Anthropic Messages API emulation with models, message batches, streaming SSE, tool use, deterministic response seeding, and an inspector. Responses are matcher-driven. No real Anthropic network calls are made.
+
+## Start
+
+```bash
+npx emulate --service anthropic
+```
+
+When Anthropic is the only enabled service, it starts on `http://localhost:4000`. When all services are started, it uses `http://localhost:4015`.
+
+## Defaults
+
+When no `api_keys` are seeded, any key is accepted. Default seeded key via CLI init:
+
+```text
+ANTHROPIC_API_KEY=sk-ant-test-key
+```
+
+Send `x-api-key: <key>` and `anthropic-version: 2023-06-01` on every API call. `Authorization: Bearer <key>` is accepted as a fallback.
+
+## Supported Routes
+
+### Messages And Models
+
+- `POST /v1/messages` - create a message (supports `stream`, tools, thinking, stop sequences)
+- `POST /v1/messages/count_tokens` - estimate input tokens
+- `GET /v1/models` - list models (`before_id` / `after_id` / `limit`)
+- `GET /v1/models/:id` - retrieve a model (aliases resolve to canonical ids)
+
+### Message Batches
+
+- `POST /v1/messages/batches` - create and process a batch synchronously
+- `GET /v1/messages/batches` / `GET /v1/messages/batches/:id`
+- `GET /v1/messages/batches/:id/results` - JSONL results
+- `POST /v1/messages/batches/:id/cancel` / `DELETE /v1/messages/batches/:id`
+
+### Inspector
+
+- `GET /` - tabbed inspector (requests, models, batches, API keys)
+
+## Streaming
+
+Set `stream: true` on `POST /v1/messages` for Anthropic-shaped Server-Sent Events (`message_start`, `content_block_delta`, `message_stop`, and related events). Matchers can return fixed text replies or `tool_use` blocks.
+
+Point the official SDK at the emulator:
+
+```typescript
+import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic({
+  apiKey: "sk-ant-test-key",
+  baseURL: "http://localhost:4000",
+});
+```
+
+## Seed Config
+
+```yaml
+anthropic:
+  api_keys:
+    - sk-ant-test-key
+  responses:
+    - match:
+        content_contains: ping
+      reply: pong
+```
+
+## Current Limits
+
+Files API, Admin API, prompt caching behavior beyond zeroed cache token fields, citations, web search / computer use / code execution server tools, beta endpoints, and real model inference are not implemented. Responses are deterministic and matcher-driven for local tests.

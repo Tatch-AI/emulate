@@ -1,6 +1,6 @@
 ---
 name: emulate
-description: Local drop-in API emulator for Vercel, GitHub, Google, Slack, Apple, Microsoft, AWS, Linear, and other developer APIs. Use when the user needs to start emulated services, configure seed data, write tests against local APIs, set up CI without network access, or work with the emulate CLI or programmatic API. Triggers include "start the emulator", "emulate services", "mock API locally", "create emulator config", "test against local API", "npx emulate", or any task requiring local service emulation.
+description: Local drop-in API emulator for Vercel, GitHub, Google, Slack, Apple, Microsoft, AWS, Linear, Twilio, OpenAI, Anthropic, PostHog, OpenPhone, Knock, Deepgram, and other developer APIs. Use when the user needs to start emulated services, configure seed data, write tests against local APIs, set up CI without network access, or work with the emulate CLI or programmatic API. Triggers include "start the emulator", "emulate services", "mock API locally", "create emulator config", "test against local API", "npx emulate", or any task requiring local service emulation.
 allowed-tools: Bash(npx emulate:*)
 ---
 
@@ -32,6 +32,12 @@ All services start with sensible defaults:
 | Clerk     | 4011        |
 | Linear    | 4012        |
 | Twilio    | 4013        |
+| OpenAI    | 4014        |
+| Anthropic | 4015        |
+| PostHog   | 4016        |
+| OpenPhone | 4017        |
+| Knock     | 4018        |
+| Deepgram  | 4019        |
 
 ## CLI
 
@@ -97,7 +103,7 @@ await vercel.close()
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `service` | *(required)* | `'vercel'`, `'github'`, `'google'`, `'slack'`, `'apple'`, `'microsoft'`, `'okta'`, `'aws'`, `'resend'`, `'stripe'`, `'mongoatlas'`, `'clerk'`, `'linear'`, or `'twilio'` |
+| `service` | *(required)* | `'vercel'`, `'github'`, `'google'`, `'slack'`, `'apple'`, `'microsoft'`, `'okta'`, `'aws'`, `'resend'`, `'stripe'`, `'mongoatlas'`, `'clerk'`, `'linear'`, `'twilio'`, `'openai'`, `'anthropic'`, `'posthog'`, `'openphone'`, `'knock'`, or `'deepgram'` |
 | `port` | `4000` | Port for the HTTP server |
 | `seed` | none | Inline seed data (same shape as YAML config) |
 | `baseUrl` | none | Override advertised base URL. Per-service `baseUrl` in seed config takes highest priority, then this option, then `EMULATE_BASE_URL` env var (supports `{service}`), then `PORTLESS_URL` (supports `{service}`, automatically set by the `portless` CLI wrapper), then `http://localhost:<port>`. |
@@ -346,6 +352,13 @@ APPLE_EMULATOR_URL=http://localhost:4004
 MICROSOFT_EMULATOR_URL=http://localhost:4005
 AWS_EMULATOR_URL=http://localhost:4007
 LINEAR_EMULATOR_URL=http://localhost:4012
+TWILIO_EMULATOR_URL=http://localhost:4013
+OPENAI_BASE_URL=http://localhost:4014/v1
+ANTHROPIC_BASE_URL=http://localhost:4015
+POSTHOG_HOST=http://localhost:4016
+OPENPHONE_EMULATOR_URL=http://localhost:4017
+KNOCK_BASE_URL=http://localhost:4018
+DEEPGRAM_BASE_URL=http://localhost:4019
 ```
 
 Then use these in your app to construct API and OAuth URLs. See each service's skill for SDK-specific override instructions.
@@ -397,6 +410,12 @@ packages/
     slack/           # Slack Web API, OAuth, incoming webhooks plugin
     linear/          # Linear GraphQL API, OAuth, webhooks plugin
     twilio/          # Twilio Messaging, Verify, Voice, webhooks plugin
+    openai/          # OpenAI chat, responses, embeddings, audio, batches
+    anthropic/       # Anthropic Messages API, streaming, batches
+    posthog/         # PostHog capture, decide/flags, private API
+    openphone/       # OpenPhone messages, calls, contacts, webhooks
+    knock/           # Knock workflows, feeds, messages, preferences
+    deepgram/        # Deepgram listen, speak, read, management API
     apple/           # Sign in with Apple / OIDC plugin
     microsoft/       # Microsoft Entra ID OAuth 2.0 / OIDC plugin
     aws/             # AWS S3, SQS, IAM, STS plugin

@@ -59,7 +59,7 @@ afterAll(() => Promise.all([github.close(), vercel.close()]))
     <tr>
       <td><code>service</code></td>
       <td><em>(required)</em></td>
-      <td>Service name: <code>'vercel'</code>, <code>'github'</code>, <code>'google'</code>, <code>'slack'</code>, <code>'apple'</code>, <code>'microsoft'</code>, <code>'okta'</code>, <code>'aws'</code>, <code>'resend'</code>, <code>'stripe'</code>, <code>'mongoatlas'</code>, <code>'clerk'</code>, or <code>'linear'</code></td>
+      <td>Service name: <code>'vercel'</code>, <code>'github'</code>, <code>'google'</code>, <code>'slack'</code>, <code>'apple'</code>, <code>'microsoft'</code>, <code>'okta'</code>, <code>'aws'</code>, <code>'resend'</code>, <code>'stripe'</code>, <code>'mongoatlas'</code>, <code>'clerk'</code>, <code>'linear'</code>, <code>'twilio'</code>, <code>'openai'</code>, <code>'anthropic'</code>, <code>'posthog'</code>, <code>'openphone'</code>, <code>'knock'</code>, or <code>'deepgram'</code></td>
     </tr>
     <tr>
       <td><code>port</code></td>
@@ -135,6 +135,13 @@ npm install @emulators/github @emulators/google @emulators/linear
     <tr><td><code>@emulators/resend</code></td><td>Resend email API</td></tr>
     <tr><td><code>@emulators/stripe</code></td><td>Stripe billing and payments API</td></tr>
     <tr><td><code>@emulators/clerk</code></td><td>Clerk Backend API and OAuth</td></tr>
+    <tr><td><code>@emulators/twilio</code></td><td>Twilio Messaging, Verify, Voice, webhooks</td></tr>
+    <tr><td><code>@emulators/openai</code></td><td>OpenAI chat, responses, embeddings, audio, batches</td></tr>
+    <tr><td><code>@emulators/anthropic</code></td><td>Anthropic Messages API, streaming, batches</td></tr>
+    <tr><td><code>@emulators/posthog</code></td><td>PostHog capture, decide/flags, private API</td></tr>
+    <tr><td><code>@emulators/openphone</code></td><td>OpenPhone messages, calls, contacts, webhooks</td></tr>
+    <tr><td><code>@emulators/knock</code></td><td>Knock workflows, feeds, messages, preferences</td></tr>
+    <tr><td><code>@emulators/deepgram</code></td><td>Deepgram listen, speak, read, management API</td></tr>
     <tr><td><code>@emulators/core</code></td><td>Shared store, middleware, and utilities</td></tr>
     <tr><td><code>@emulators/adapter-next</code></td><td>Next.js App Router integration</td></tr>
     <tr><td><code>@emulators/adapter-nuxt</code></td><td>Nuxt server route integration</td></tr>

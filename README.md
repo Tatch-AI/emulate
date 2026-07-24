@@ -24,6 +24,12 @@ All services start with sensible defaults. No config file needed:
 - **Clerk** on `http://localhost:4011`
 - **Linear** on `http://localhost:4012`
 - **Twilio** on `http://localhost:4013`
+- **OpenAI** on `http://localhost:4014`
+- **Anthropic** on `http://localhost:4015`
+- **PostHog** on `http://localhost:4016`
+- **OpenPhone** on `http://localhost:4017`
+- **Knock** on `http://localhost:4018`
+- **Deepgram** on `http://localhost:4019`
 
 ## CLI
 
@@ -148,7 +154,7 @@ afterAll(() => Promise.all([github.close(), vercel.close()]))
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `service` | *(required)* | Service name: `'vercel'`, `'github'`, `'google'`, `'slack'`, `'apple'`, `'microsoft'`, `'okta'`, `'aws'`, `'resend'`, `'stripe'`, `'mongoatlas'`, `'clerk'`, `'linear'`, or `'twilio'` |
+| `service` | *(required)* | Service name: `'vercel'`, `'github'`, `'google'`, `'slack'`, `'apple'`, `'microsoft'`, `'okta'`, `'aws'`, `'resend'`, `'stripe'`, `'mongoatlas'`, `'clerk'`, `'linear'`, `'twilio'`, `'openai'`, `'anthropic'`, `'posthog'`, `'openphone'`, `'knock'`, or `'deepgram'` |
 | `port` | `4000` | Port for the HTTP server |
 | `seed` | none | Inline seed data (same shape as YAML config) |
 | `baseUrl` | none | Override advertised base URL. Per-service `baseUrl` in seed config takes highest priority, then this option, then `EMULATE_BASE_URL` env var (supports `{service}`), then `PORTLESS_URL` (supports `{service}`, automatically set by the `portless` CLI wrapper), then `http://localhost:<port>`. |
@@ -423,6 +429,99 @@ aws:
     roles:
       - role_name: lambda-execution-role
         description: Role for Lambda function execution
+
+openai:
+  api_keys:
+    - sk-test-openai
+  responses:
+    - match:
+        content_contains: ping
+      reply: pong
+  transcripts:
+    - filename_contains: greeting
+      text: Hello from the OpenAI emulator.
+
+anthropic:
+  api_keys:
+    - sk-ant-test-key
+  responses:
+    - match:
+        content_contains: ping
+      reply: pong
+
+posthog:
+  project:
+    id: 1
+    name: Local Project
+    api_key: phc_test_key
+  personal_api_keys:
+    - phx_test_personal
+  feature_flags:
+    - key: new-dashboard
+      active: true
+      filters:
+        groups:
+          - properties: []
+            rollout_percentage: 100
+  persons:
+    - distinct_ids: [user_1]
+      properties:
+        email: test@example.com
+
+openphone:
+  api_keys:
+    - key: op_test_api_key
+      name: Local API Key
+  users:
+    - first_name: Test
+      last_name: User
+      email: test@example.com
+      role: owner
+  phone_numbers:
+    - number: "+15551230000"
+      name: Local OpenPhone Number
+      users: [test@example.com]
+  custom_fields:
+    - key: account-id
+      name: Account ID
+      type: string
+
+knock:
+  api_keys:
+    - sk_test_knock
+    - pk_test_knock
+  channels:
+    - key: in-app
+      type: in_app_feed
+      name: In-App Feed
+    - key: email
+      type: email
+      name: Email
+  workflows:
+    - key: welcome
+      name: Welcome
+      steps:
+        - channel: in-app
+          template:
+            body: "Welcome, {{ recipient.name }}!"
+        - channel: email
+          template:
+            subject: Welcome
+            body: "Hi {{ recipient.name }}"
+  users:
+    - id: user_1
+      name: Test User
+      email: test@example.com
+
+deepgram:
+  api_keys:
+    - deepgram_test_key
+  projects:
+    - name: Local Project
+  transcripts:
+    - match:
+        url_contains: greeting
+      text: Hello from the Deepgram emulator.
 ```
 
 ## OAuth & Integrations
@@ -982,6 +1081,204 @@ All operations via `POST /iam/` with `Action` parameter:
 All operations via `POST /sts/` with `Action` parameter:
 - `GetCallerIdentity`, `AssumeRole`
 
+## OpenAI API
+
+Fully stateful OpenAI API emulation. Chat completions, Responses, embeddings, models, audio, moderations, files, and batches persist in memory. Replies are deterministic and seedable so tests stay stable. No real OpenAI network calls are made. When no `api_keys` are seeded, any Bearer token is accepted.
+
+Default local credentials (when seeded via defaults or config):
+
+```text
+OPENAI_API_KEY=sk-test-openai
+```
+
+### Chat Completions And Responses
+
+- `POST /v1/chat/completions` - chat completions (streaming SSE and non-streaming, tools, JSON response formats)
+- `POST /v1/responses` - Responses API (streaming and non-streaming)
+- `GET /v1/responses/:id` - retrieve a stored response
+- `DELETE /v1/responses/:id` - delete a stored response
+
+Set `stream: true` for Server-Sent Events. Tool calls and JSON modes are supported. Response matchers in seed config can return fixed text or tool calls.
+
+### Embeddings, Models, Audio, Moderations
+
+- `POST /v1/embeddings` - deterministic embeddings (`float` or `base64`)
+- `GET /v1/models` - list models
+- `GET /v1/models/:id` - get model
+- `POST /v1/audio/transcriptions` - multipart transcription
+- `POST /v1/audio/translations` - multipart translation
+- `POST /v1/audio/speech` - binary speech synthesis
+- `POST /v1/moderations` - content moderation
+
+### Files And Batches
+
+- `POST /v1/files` / `GET /v1/files` / `GET /v1/files/:id` / `GET /v1/files/:id/content` / `DELETE /v1/files/:id`
+- `POST /v1/batches` - create and process a batch synchronously
+- `GET /v1/batches` / `GET /v1/batches/:id` / `POST /v1/batches/:id/cancel`
+- `GET /` - tabbed inspector for request log, models, files, batches, and API keys
+
+Current OpenAI limits: Realtime WebSocket API, Assistants API (threads/runs), fine-tuning jobs, image generation/edits/variations, vision image understanding beyond accepting multipart content parts, vector stores, and exact production token accounting / rate limits are not implemented. Completions are deterministic and seedable rather than model-inferred. Batch jobs are processed synchronously on create.
+
+## Anthropic API
+
+Fully stateful Anthropic Messages API emulation with models, message batches, streaming SSE, tool use, deterministic response seeding, and an inspector. Responses are matcher-driven. When no `api_keys` are seeded, any key is accepted.
+
+Default local credentials (when seeded via defaults or config):
+
+```text
+ANTHROPIC_API_KEY=sk-ant-test-key
+```
+
+### Messages And Models
+
+- `POST /v1/messages` - create a message (supports `stream`, tools, thinking, stop sequences)
+- `POST /v1/messages/count_tokens` - estimate input tokens
+- `GET /v1/models` - list models (`before_id` / `after_id` / `limit`)
+- `GET /v1/models/:id` - retrieve a model (aliases resolve to canonical ids)
+
+Set `stream: true` for Anthropic-shaped Server-Sent Events (`message_start`, `content_block_delta`, `message_stop`, and related events).
+
+### Message Batches And Inspector
+
+- `POST /v1/messages/batches` - create and process a batch synchronously
+- `GET /v1/messages/batches` / `GET /v1/messages/batches/:id`
+- `GET /v1/messages/batches/:id/results` - JSONL results
+- `POST /v1/messages/batches/:id/cancel` / `DELETE /v1/messages/batches/:id`
+- `GET /` - tabbed inspector (requests, models, batches, API keys)
+
+Current Anthropic limits: Files API, Admin API, prompt caching behavior beyond zeroed cache token fields, citations, web search / computer use / code execution server tools, beta endpoints, and real model inference are not implemented. Responses are deterministic and matcher-driven for local tests.
+
+## PostHog
+
+Fully stateful PostHog emulation with event capture, person identity, feature flag evaluation, private project APIs, and a local inspector. No data is sent to PostHog Cloud.
+
+Default local credentials:
+
+```text
+POSTHOG_PROJECT_API_KEY=phc_test_key
+POSTHOG_PERSONAL_API_KEY=phx_test_personal
+```
+
+### Capture And Feature Flags
+
+- `POST /capture/`, `/batch/`, `/e/` - event ingestion aliases (`{"status":1}`)
+- `POST /i/v0/e/` - modern ingestion alias (`{"status":"Ok"}`)
+- `POST /decide/?v=3` and `?v=4` - flag evaluation
+- `POST /flags/?v=2` - flags endpoint used by current SDKs
+- `GET /api/feature_flag/local_evaluation?token=<project_key>` - local evaluation (Bearer personal API key)
+- `GET /flags/definitions?token=<project_key>` - same payload shape for `posthog-node`
+
+Capture, `/decide`, and `/flags` carry the project API key (`phc_...`) in the JSON body as `api_key` or `token`.
+
+### Private API And Inspector
+
+- `GET /api/projects/@current/` and `GET /api/projects/:id/`
+- Feature flags CRUD under `/api/projects/:project_id/feature_flags/`
+- Persons and events list/detail with filters and pagination
+- Annotations create/list
+- `GET /` - events, persons, feature flags, decide log, API keys
+
+Current PostHog limits: session recordings, cohort evaluation beyond empty cohort maps, insights / HogQL query API, surveys, group analytics beyond accepting `groups` on decide/flags requests, experiments UI, replay, error tracking, CDP / destinations, and real network export to PostHog Cloud are not implemented.
+
+## OpenPhone API
+
+Stateful OpenPhone (Quo) REST emulation of messages, calls (read plus simulator), contacts, phone numbers, signed webhooks, local simulator routes, and an inspector. Auth uses the raw API key in the `Authorization` header (Bearer is also accepted).
+
+Default local credentials:
+
+```text
+OPENPHONE_API_KEY=op_test_api_key
+OPENPHONE_PHONE_NUMBER=+15551234567
+OPENPHONE_PHONE_NUMBER_ID=PN00000000
+OPENPHONE_USER_ID=US00000000
+```
+
+### Messages, Calls, Contacts, Phone Numbers
+
+- `POST /v1/messages` - send outbound SMS (transitions to delivered and fires `message.delivered`)
+- `GET /v1/messages` / `GET /v1/messages/{id}` - list and get messages (`phoneNumberId` + `participants` required for list)
+- `GET /v1/calls` / `GET /v1/calls/{callId}` - list and get calls
+- `GET /v1/call-recordings/{callId}` - list recordings (also `/v1/calls/{callId}/recordings`)
+- `GET /v1/call-summaries/{callId}` / `GET /v1/call-transcripts/{callId}`
+- `POST /v1/contacts` / `GET|PATCH|DELETE /v1/contacts/{id}` - contacts CRUD
+- `GET /v1/contact-custom-fields` - list custom field definitions
+- `GET /v1/phone-numbers` / `GET /v1/phone-numbers/{phoneNumberId}`
+
+### Webhooks And Simulator
+
+- `POST /v1/webhooks/messages|calls|call-summaries|call-transcripts`
+- `GET /v1/webhooks` / `GET /v1/webhooks/{id}` / `DELETE /v1/webhooks/{id}`
+- Deliveries use the OpenPhone `openphone-signature` header (`hmac;1;<timestamp>;<signature>`)
+- `POST /_openphone/simulate/inbound-message` - simulate inbound SMS (`message.received`)
+- `POST /_openphone/simulate/inbound-call` - simulate inbound call (`call.ringing` then `call.completed`)
+- `POST /_openphone/simulate/call-recording|call-summary|call-transcript` - attach call artifacts
+- `GET /` - tabbed inspector for messages, calls, contacts, phone numbers, webhooks, and API keys
+
+Current OpenPhone limits: no real telephony, carrier delivery, MMS/media upload, user management writes, conversations endpoints, tasks, voicemail media hosting, or production OpenPhone billing and compliance behavior. Calls, recordings, summaries, and transcripts are created through seed config or `/_openphone/simulate/*` routes.
+
+## Knock API
+
+Fully stateful Knock notification API emulation with workflows, users, messages, in-app feeds, objects, preferences, tenants, and a local inspector. Triggering a workflow walks channel steps, renders `{{ }}` templates, and stores messages. No real email, SMS, push, or chat delivery. When no `api_keys` are seeded, any non-empty Bearer token is accepted.
+
+Default local credentials (when seeded via defaults or config):
+
+```text
+KNOCK_API_KEY=sk_test_knock
+```
+
+### Workflows, Users, Messages
+
+- `POST /v1/workflows/:key/trigger` - trigger a seeded workflow for recipients
+- `POST /v1/workflows/:key/cancel` - cancel runs by `cancellation_key` (204)
+- `PUT /v1/users/:user_id` - identify / upsert
+- `GET /v1/users/:user_id` / `DELETE /v1/users/:user_id` / `GET /v1/users`
+- `POST /v1/users/:user_id/merge` / `POST /v1/users/bulk/identify`
+- `GET /v1/users/:user_id/messages` / `GET /v1/messages` / `GET /v1/messages/:id`
+- `GET /v1/messages/:id/content` / `GET /v1/messages/:id/events`
+- `PUT /v1/messages/:id/seen|read|interacted|archived` and matching DELETE un-* routes
+- `POST /v1/messages/batch/:status` / `POST /v1/channels/:channel_id/messages/bulk/:status`
+
+### Feeds, Objects, Preferences, Tenants
+
+- `GET /v1/users/:user_id/feeds/:channel_id` - in-app feed with `meta` counts
+- `POST /v1/users/:user_id/feeds/:channel_id/:status` - mark feed items
+- `GET /v1/users/:user_id/feeds/:channel_id/settings`
+- `PUT|GET|DELETE /v1/objects/:collection/:object_id` / `GET /v1/objects/:collection`
+- `POST|GET|DELETE /v1/objects/:collection/:object_id/subscriptions`
+- `GET /v1/users/:user_id/preferences` / `GET|PUT /v1/users/:user_id/preferences/:id`
+- `PUT|GET|DELETE /v1/tenants/:id` / `GET /v1/tenants`
+- `GET /` - tabbed inspector (messages, feed preview, workflow runs, users, objects, workflows, API keys)
+
+Feed endpoints also accept `Authorization: Bearer pk_...` or no auth (relaxation versus production).
+
+Current Knock limits: no template management / workflow design API (workflows are seed-only), no real channel delivery, no delays/batching/branching/fetch/throttle steps, no schedules API, no audiences, no MS Teams / Slack channel integrations, no guides API. Feed auth is relaxed (same host; optional public key or no auth).
+
+## Deepgram API
+
+Fully stateful Deepgram emulation of prerecorded transcription, text to speech, text intelligence, temporary auth tokens, and the management API (projects, keys, usage). Transcripts come from seed matchers or deterministic defaults. TTS returns synthetic audio bytes.
+
+Default local credentials:
+
+```text
+DEEPGRAM_API_KEY=deepgram_test_key
+```
+
+### Listen, Speak, Read, Auth
+
+- `POST /v1/listen` - prerecorded transcription (URL JSON body or raw audio bytes)
+- `POST /v1/speak` - text to speech (returns audio bytes with `dg-request-id` and related headers)
+- `POST /v1/read` - text intelligence (summarize, topics, sentiment, intents)
+- `POST /v1/auth/grant` - issue temporary access tokens (`ttl_seconds` 1–3600, default 30)
+
+### Management And Inspector
+
+- `GET/PATCH/DELETE /v1/projects` and `/v1/projects/:id`
+- `GET/POST/DELETE /v1/projects/:id/keys` (and get one)
+- `GET /v1/projects/:id/members` / `GET /v1/projects/:id/requests` / `GET /v1/projects/:id/usage`
+- `GET /` - transcription requests, TTS, projects/keys, temp tokens, callback deliveries
+
+Current Deepgram limits: no WebSocket live transcription (`/v1/listen` streaming), no Agent API or Voice Agent websocket, no self-hosted distribution endpoints, no balances/invoices/billing. Audio is not decoded; duration is seeded or estimated from transcript length. TTS returns deterministic fake WAV/MP3 bytes. Callback delivery is best-effort local HTTP POST with a `dg-token` header.
+
 ## Next.js Integration
 
 Embed emulators directly in your Next.js app so they run on the same origin. This solves the Vercel preview deployment problem where OAuth callback URLs change with every deployment.
@@ -1202,6 +1499,12 @@ packages/
     slack/          # Slack Web API, OAuth v2, incoming webhooks
     linear/         # Linear GraphQL API, OAuth, webhooks
     twilio/         # Twilio Messaging, Verify, Voice, webhooks
+    openai/         # OpenAI chat, responses, embeddings, audio, batches
+    anthropic/      # Anthropic Messages API, streaming, batches
+    posthog/        # PostHog capture, decide/flags, private API
+    openphone/      # OpenPhone messages, calls, contacts, webhooks
+    knock/          # Knock workflows, feeds, messages, preferences
+    deepgram/       # Deepgram listen, speak, read, management API
     apple/          # Apple Sign In / OIDC
     microsoft/      # Microsoft Entra ID OAuth 2.0 / OIDC + Graph /me
     aws/            # AWS S3, SQS, IAM, STS
@@ -1226,6 +1529,18 @@ Tokens are configured in the seed config and map to users. Pass them as `Authori
 **Linear**: GraphQL accepts `Authorization: Bearer <token>` or a bare personal API key value. Seeded Linear tokens map to users or app actors, OAuth apps support local authorization code and client credentials flows, and optional strict scope mode checks supported GraphQL operations.
 
 **Twilio**: HTTP Basic auth accepts the seeded Account SID/Auth Token pair or API Key/API Secret pair. Product-host APIs are exposed under local prefixes such as `/messaging/v1` and `/verify/v2`; the 2010 API lives at `/2010-04-01`.
+
+**OpenAI**: Pass `Authorization: Bearer <key>` (typically `sk-...`). When no `api_keys` are seeded, any Bearer token is accepted. Organization and project headers are accepted and echoed.
+
+**Anthropic**: Send `x-api-key: <key>` and `anthropic-version: 2023-06-01` on every API call. `Authorization: Bearer <key>` is accepted as a fallback. When no `api_keys` are seeded, any key is accepted.
+
+**PostHog**: Capture, `/decide`, and `/flags` carry the project API key (`phc_...`) in the JSON body as `api_key` or `token`. Private project APIs and local evaluation require `Authorization: Bearer phx_...` personal API keys.
+
+**OpenPhone**: Send the API key in the raw `Authorization` header (no Bearer prefix required). `Authorization: Bearer <key>` is also accepted. When no API keys are seeded, any non-empty key is accepted.
+
+**Knock**: Server routes expect `Authorization: Bearer sk_...`. When `api_keys` are seeded, only matching secret keys are accepted. When none are seeded, any non-empty Bearer token is accepted. Feed endpoints also accept `pk_...` public keys or no auth.
+
+**Deepgram**: Canonical form is `Authorization: Token <api_key>`. Also accepts `Authorization: Bearer <token>` for temporary tokens from `POST /v1/auth/grant`, and for API keys. When no API keys are seeded, any credential is accepted.
 
 **Apple**: OIDC authorization code flow with RS256 ID tokens. On first auth per user/client pair, a `user` JSON blob is included.
 

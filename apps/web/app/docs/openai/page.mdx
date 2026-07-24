@@ -1,0 +1,81 @@
+# OpenAI API
+
+Fully stateful OpenAI API emulation. Chat completions, Responses, embeddings, models, audio, moderations, files, and batches persist in memory. Replies are deterministic and seedable so tests stay stable. No real OpenAI network calls are made.
+
+## Start
+
+```bash
+npx emulate --service openai
+```
+
+When OpenAI is the only enabled service, it starts on `http://localhost:4000`. When all services are started, it uses `http://localhost:4014`.
+
+## Defaults
+
+When no `api_keys` are seeded, any Bearer token is accepted. Default seeded key via CLI init:
+
+```text
+OPENAI_API_KEY=sk-test-openai
+```
+
+Pass tokens as `Authorization: Bearer <key>`. Organization and project headers (`OpenAI-Organization`, `OpenAI-Project`) are accepted and echoed. Responses include `x-request-id`.
+
+## Supported Routes
+
+### Chat Completions And Responses
+
+- `POST /v1/chat/completions` - chat completions (streaming SSE and non-streaming, tools, JSON response formats)
+- `POST /v1/responses` - Responses API (streaming and non-streaming)
+- `GET /v1/responses/:id` - retrieve a stored response
+- `DELETE /v1/responses/:id` - delete a stored response
+
+### Embeddings, Models, Audio, Moderations
+
+- `POST /v1/embeddings` - deterministic embeddings (`float` or `base64`)
+- `GET /v1/models` / `GET /v1/models/:id`
+- `POST /v1/audio/transcriptions` / `POST /v1/audio/translations` / `POST /v1/audio/speech`
+- `POST /v1/moderations`
+
+### Files And Batches
+
+- `POST /v1/files` / `GET /v1/files` / `GET /v1/files/:id` / `GET /v1/files/:id/content` / `DELETE /v1/files/:id`
+- `POST /v1/batches` - create and process a batch synchronously
+- `GET /v1/batches` / `GET /v1/batches/:id` / `POST /v1/batches/:id/cancel`
+
+### Inspector
+
+- `GET /` - tabbed inspector for request log, models, files, batches, and API keys
+
+## Streaming
+
+Set `stream: true` on chat completions or Responses requests to receive Server-Sent Events. Tool calls, JSON modes (`json_object`, `json_schema`), and seedable reply matchers work in both streaming and non-streaming modes.
+
+Point the official SDK at the emulator:
+
+```typescript
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "sk-test-openai",
+  baseURL: "http://localhost:4000/v1",
+});
+```
+
+## Seed Config
+
+```yaml
+openai:
+  api_keys:
+    - sk-test-openai
+  responses:
+    - match:
+        content_contains: ping
+      reply: pong
+  transcripts:
+    - filename_contains: greeting
+      text: Hello from the OpenAI emulator.
+```
+
+## Current Limits
+
+Realtime WebSocket API, Assistants API (threads/runs), fine-tuning jobs, image generation/edits/variations, vision image understanding beyond accepting multipart content parts, vector stores, and exact production token accounting / rate limits are not implemented. Completions are deterministic and seedable rather than model-inferred. Batch jobs are processed synchronously on create.

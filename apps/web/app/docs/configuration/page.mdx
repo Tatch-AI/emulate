@@ -380,3 +380,120 @@ stripe:
       recurring:
         interval: month
 ```
+
+## OpenAI Seed Config
+
+```yaml
+openai:
+  api_keys:
+    - sk-test-openai
+  responses:
+    - match:
+        content_contains: ping
+      reply: pong
+  transcripts:
+    - filename_contains: greeting
+      text: Hello from the OpenAI emulator.
+```
+
+## Anthropic Seed Config
+
+```yaml
+anthropic:
+  api_keys:
+    - sk-ant-test-key
+  responses:
+    - match:
+        content_contains: ping
+      reply: pong
+```
+
+## PostHog Seed Config
+
+```yaml
+posthog:
+  project:
+    id: 1
+    name: Local Project
+    api_key: phc_test_key
+  personal_api_keys:
+    - phx_test_personal
+  feature_flags:
+    - key: new-dashboard
+      active: true
+      filters:
+        groups:
+          - properties: []
+            rollout_percentage: 100
+  persons:
+    - distinct_ids: [user_1]
+      properties:
+        email: test@example.com
+```
+
+## OpenPhone Seed Config
+
+```yaml
+openphone:
+  api_keys:
+    - key: op_test_api_key
+      name: Local API Key
+  users:
+    - first_name: Test
+      last_name: User
+      email: test@example.com
+      role: owner
+  phone_numbers:
+    - number: "+15551230000"
+      name: Local OpenPhone Number
+      users: [test@example.com]
+  custom_fields:
+    - key: account-id
+      name: Account ID
+      type: string
+```
+
+## Knock Seed Config
+
+```yaml
+knock:
+  api_keys:
+    - sk_test_knock
+    - pk_test_knock
+  channels:
+    - key: in-app
+      type: in_app_feed
+      name: In-App Feed
+    - key: email
+      type: email
+      name: Email
+  workflows:
+    - key: welcome
+      name: Welcome
+      steps:
+        - channel: in-app
+          template:
+            body: "Welcome, {{ recipient.name }}!"
+        - channel: email
+          template:
+            subject: Welcome
+            body: "Hi {{ recipient.name }}"
+  users:
+    - id: user_1
+      name: Test User
+      email: test@example.com
+```
+
+## Deepgram Seed Config
+
+```yaml
+deepgram:
+  api_keys:
+    - deepgram_test_key
+  projects:
+    - name: Local Project
+  transcripts:
+    - match:
+        url_contains: greeting
+      text: Hello from the Deepgram emulator.
+```

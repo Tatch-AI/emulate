@@ -1,0 +1,104 @@
+# Knock API
+
+Fully stateful Knock notification API emulation with workflows, users, messages, in-app feeds, objects, preferences, tenants, and a local inspector. Triggering a workflow walks channel steps, renders `{{ }}` templates, and stores messages. No real email, SMS, push, or chat delivery.
+
+## Start
+
+```bash
+npx emulate --service knock
+```
+
+When Knock is the only enabled service, it starts on `http://localhost:4000`. When all services are started, it uses `http://localhost:4018`.
+
+## Defaults
+
+When no `api_keys` are seeded, any non-empty Bearer token is accepted. Default seeded keys via CLI init:
+
+```text
+KNOCK_API_KEY=sk_test_knock
+```
+
+Server routes expect `Authorization: Bearer sk_...`. Feed endpoints also accept `pk_...` public keys or no auth (relaxation versus production).
+
+## Supported Routes
+
+### Workflows And Users
+
+- `POST /v1/workflows/:key/trigger` - trigger a seeded workflow for recipients
+- `POST /v1/workflows/:key/cancel` - cancel runs by `cancellation_key` (204)
+- `PUT /v1/users/:user_id` - identify / upsert
+- `GET /v1/users/:user_id` / `DELETE /v1/users/:user_id` / `GET /v1/users`
+- `POST /v1/users/:user_id/merge` / `POST /v1/users/bulk/identify`
+- `GET /v1/users/:user_id/messages`
+
+### Messages And Feeds
+
+- `GET /v1/messages` / `GET /v1/messages/:id` / `GET /v1/messages/:id/content` / `GET /v1/messages/:id/events`
+- `PUT /v1/messages/:id/seen|read|interacted|archived` and matching DELETE un-* routes
+- `POST /v1/messages/batch/:status` / `POST /v1/channels/:channel_id/messages/bulk/:status`
+- `GET /v1/users/:user_id/feeds/:channel_id` - in-app feed with `meta` counts
+- `POST /v1/users/:user_id/feeds/:channel_id/:status` - mark feed items
+- `GET /v1/users/:user_id/feeds/:channel_id/settings`
+
+### Objects, Preferences, Tenants
+
+- `PUT|GET|DELETE /v1/objects/:collection/:object_id` / `GET /v1/objects/:collection`
+- `POST|GET|DELETE /v1/objects/:collection/:object_id/subscriptions`
+- `GET /v1/users/:user_id/preferences` / `GET|PUT /v1/users/:user_id/preferences/:id`
+- `PUT|GET|DELETE /v1/tenants/:id` / `GET /v1/tenants`
+- `GET /` - tabbed inspector
+
+## Trigger And Feed Flow
+
+Seed workflows and channels, identify a user, then trigger:
+
+```typescript
+import Knock from "@knocklabs/node";
+
+const knock = new Knock({
+  apiKey: "sk_test_knock",
+  baseURL: "http://localhost:4000",
+});
+
+await knock.workflows.trigger("welcome", {
+  recipients: ["user_1"],
+  data: { app: "Demo" },
+});
+```
+
+Read the in-app feed at `GET /v1/users/:user_id/feeds/:channel_id`, then mark items seen/read through the feed or message engagement routes. Preferences can skip channels (`channel_types.email: false`) or whole workflows (`workflows.welcome: false`).
+
+## Seed Config
+
+```yaml
+knock:
+  api_keys:
+    - sk_test_knock
+    - pk_test_knock
+  channels:
+    - key: in-app
+      type: in_app_feed
+      name: In-App Feed
+    - key: email
+      type: email
+      name: Email
+  workflows:
+    - key: welcome
+      name: Welcome
+      steps:
+        - channel: in-app
+          template:
+            body: "Welcome, {{ recipient.name }}!"
+        - channel: email
+          template:
+            subject: Welcome
+            body: "Hi {{ recipient.name }}"
+  users:
+    - id: user_1
+      name: Test User
+      email: test@example.com
+```
+
+## Current Limits
+
+No template management / workflow design API (workflows are seed-only), no real channel delivery, no delays/batching/branching/fetch/throttle steps, no schedules API, no audiences, no MS Teams / Slack channel integrations, no guides API. Feed auth is relaxed (same host; optional public key or no auth).

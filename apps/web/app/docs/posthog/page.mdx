@@ -1,0 +1,93 @@
+# PostHog
+
+Fully stateful PostHog emulation with event capture, person identity, feature flag evaluation, private project APIs, and a local inspector. No data is sent to PostHog Cloud.
+
+## Start
+
+```bash
+npx emulate --service posthog
+```
+
+When PostHog is the only enabled service, it starts on `http://localhost:4000`. When all services are started, it uses `http://localhost:4016`.
+
+## Defaults
+
+```text
+POSTHOG_PROJECT_API_KEY=phc_test_key
+POSTHOG_PERSONAL_API_KEY=phx_test_personal
+```
+
+Capture, `/decide`, and `/flags` carry the project API key (`phc_...`) in the JSON body as `api_key` or `token`. Private project APIs and local evaluation require `Authorization: Bearer phx_...`.
+
+## Supported Routes
+
+### Capture
+
+- `POST /capture/`, `/batch/`, `/e/` - event ingestion aliases (`{"status":1}`)
+- `POST /i/v0/e/` - modern ingestion alias (`{"status":"Ok"}`)
+
+Accepts single events, `batch` arrays, and base64 `data` payloads. Handles `$identify`, `$set` / `$set_once`, `$create_alias`, and `$merge_dangerously`.
+
+### Decide And Flags
+
+- `POST /decide/?v=3` and `?v=4`
+- `POST /flags/?v=2`
+- `GET /api/feature_flag/local_evaluation?token=<project_key>` (Bearer personal API key)
+- `GET /flags/definitions?token=<project_key>` (same payload; used by current `posthog-node`)
+
+### Private API
+
+- `GET /api/projects/@current/` and `GET /api/projects/:id/`
+- Feature flags CRUD under `/api/projects/:project_id/feature_flags/`
+- Persons and events list/detail with filters and pagination
+- Annotations create/list
+
+### Inspector
+
+- `GET /` - events, persons, feature flags, decide log, API keys
+
+## Testing Flags And Capture
+
+Point `posthog-node` at the emulator host and evaluate flags through `/decide` or `/flags`:
+
+```typescript
+import { PostHog } from "posthog-node";
+
+const posthog = new PostHog("phc_test_key", {
+  host: "http://localhost:4000",
+  personalApiKey: "phx_test_personal",
+  flushAt: 1,
+});
+
+posthog.capture({ distinctId: "user_1", event: "signed_up" });
+await posthog.shutdown();
+```
+
+Seed feature flags with rollout groups, then call decide/flags for a `distinct_id` to assert on/off or multivariate variants. Inspect captured events and decide requests at `GET /`.
+
+## Seed Config
+
+```yaml
+posthog:
+  project:
+    id: 1
+    name: Local Project
+    api_key: phc_test_key
+  personal_api_keys:
+    - phx_test_personal
+  feature_flags:
+    - key: new-dashboard
+      active: true
+      filters:
+        groups:
+          - properties: []
+            rollout_percentage: 100
+  persons:
+    - distinct_ids: [user_1]
+      properties:
+        email: test@example.com
+```
+
+## Current Limits
+
+Session recordings, cohort evaluation beyond empty cohort maps, insights / HogQL query API, surveys, group analytics beyond accepting `groups` on decide/flags requests, experiments UI, replay, error tracking, CDP / destinations, and real network export to PostHog Cloud are not implemented.

@@ -104,3 +104,61 @@ curl http://localhost:4006/s3/ \
 ```
 
 For the AWS SDK, use IAM access key credentials. A default key pair is always seeded: `AKIAIOSFODNN7EXAMPLE` / `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY`.
+
+## OpenAI
+
+Pass `Authorization: Bearer <key>` (typically `sk-...`). When no `api_keys` are seeded, any Bearer token is accepted.
+
+```bash
+curl http://localhost:4014/v1/models \
+  -H "Authorization: Bearer sk-test-openai"
+```
+
+## Anthropic
+
+Send `x-api-key: <key>` and `anthropic-version: 2023-06-01` on every API call. `Authorization: Bearer <key>` is accepted as a fallback. When no `api_keys` are seeded, any key is accepted.
+
+```bash
+curl http://localhost:4015/v1/models \
+  -H "x-api-key: sk-ant-test-key" \
+  -H "anthropic-version: 2023-06-01"
+```
+
+## PostHog
+
+Capture, `/decide`, and `/flags` carry the project API key (`phc_...`) in the JSON body as `api_key` or `token`. Private project APIs and local evaluation require `Authorization: Bearer phx_...`.
+
+```bash
+curl -X POST http://localhost:4016/capture/ \
+  -H "Content-Type: application/json" \
+  -d '{"api_key":"phc_test_key","event":"signed_up","distinct_id":"user-1"}'
+```
+
+## OpenPhone
+
+Send the API key in the raw `Authorization` header (no Bearer prefix required). `Authorization: Bearer <key>` is also accepted.
+
+```bash
+curl http://localhost:4017/v1/phone-numbers \
+  -H "Authorization: op_test_api_key"
+```
+
+## Knock
+
+Server routes expect `Authorization: Bearer sk_...`. When no `api_keys` are seeded, any non-empty Bearer token is accepted. Feed endpoints also accept `pk_...` public keys or no auth.
+
+```bash
+curl http://localhost:4018/v1/users/user_1 \
+  -H "Authorization: Bearer sk_test_knock"
+```
+
+## Deepgram
+
+Canonical form is `Authorization: Token <api_key>`. Also accepts `Authorization: Bearer <token>` for temporary tokens from `POST /v1/auth/grant`, and for API keys.
+
+```bash
+curl -X POST http://localhost:4019/v1/listen \
+  -H "Authorization: Token deepgram_test_key" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com/audio.wav"}'
+```
