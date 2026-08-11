@@ -155,3 +155,8 @@
  * OIDC provider and user/group/app management API.
  * @external Okta in:Platform
  */
+
+/**
+ * CRM, revops pacing, and sales agents.
+ * @domain Sales
+ */
