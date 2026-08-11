@@ -1,5 +1,13 @@
 # emulate
 
+> **Orientation**: [docs/BUSINESS_CONTEXT.md](docs/BUSINESS_CONTEXT.md) explains what this
+> repo means to Harper (CI/sandbox stand-ins for third-party APIs — the emulated vendor list
+> is an estate dependency map) and what must survive a rewrite. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+> is the deep technical map (registry, core framework, all 20 emulators, flows, config).
+> The architecture is annotated with [chorograph](https://github.com/flancast90/chorograph) —
+> render the live map with `npx chorograph render . --no-open` (declarations live in
+> `chorograph/` and are verified in CI).
+
 Local drop-in replacement services for CI and no-network sandboxes. Fully stateful, production-fidelity API emulation. Not mocks.
 
 ## Quick Start
