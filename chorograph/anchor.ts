@@ -1,4 +1,4 @@
-// CHOROGRAPH-ANCHOR: swapped out by the estate-wide render (cooked/estate-map). Shared/stub declarations only.
+// CHOROGRAPH-ANCHOR: shared/stub declarations only. Merged estate-wide by chorograph --anchors.
 //
 // emulate stands in for third-party HTTP APIs in CI and sandboxes — it does not call them.
 // Externals below are the production vendors Harper services integrate with; this anchor
