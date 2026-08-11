@@ -58,7 +58,7 @@
 
 /**
  * Auth and identity for Harper apps and customer-facing surfaces.
- * @external Clerk in:Intake
+ * @external Clerk in:Platform
  */
 
 /**
@@ -108,7 +108,7 @@
 
 /**
  * Product analytics, feature flags, and event capture.
- * @external PostHog in:Acquisition
+ * @external PostHog in:Sales
  */
 
 /**
@@ -118,7 +118,7 @@
 
 /**
  * Repositories, Actions, OAuth, and GitHub App webhooks.
- * @external GitHub in:Platform
+ * @external GitHub in:DevEx
  */
 
 /**
